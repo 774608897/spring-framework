@@ -85,6 +85,7 @@ dependencies {
 	testCompile("com.fasterxml.woodstox:woodstox-core:5.2.0") {
 		exclude group: "stax", module: "stax-api"
 	}
+//	compile fileTree(dir: "libs" ,includes : "*.jar")
 }
 
 jar {

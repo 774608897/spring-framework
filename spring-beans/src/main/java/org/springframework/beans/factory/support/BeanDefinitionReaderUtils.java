@@ -61,6 +61,8 @@ public abstract class BeanDefinitionReaderUtils {
 		bd.setParentName(parentName);
 		if (className != null) {
 			if (classLoader != null) {
+				// 如果classLoader不为空，则使用以传入的classLoader同一虚拟机加载类对象
+				// 否则只记录 className
 				bd.setBeanClass(ClassUtils.forName(className, classLoader));
 			}
 			else {

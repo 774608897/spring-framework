@@ -54,18 +54,21 @@ public abstract class BeanDefinitionReaderUtils {
 	 * @return the bean definition
 	 * @throws ClassNotFoundException if the bean class could not be loaded
 	 */
-	public static AbstractBeanDefinition createBeanDefinition(
-			@Nullable String parentName, @Nullable String className, @Nullable ClassLoader classLoader) throws ClassNotFoundException {
-
+	public static AbstractBeanDefinition createBeanDefinition(@Nullable String parentName, 
+															  @Nullable String className, 
+															  @Nullable ClassLoader classLoader) throws ClassNotFoundException {
+		// 创建 GenericBeanDefinition 对象
 		GenericBeanDefinition bd = new GenericBeanDefinition();
+		// 设置 parentName
 		bd.setParentName(parentName);
 		if (className != null) {
+			// 设置 beanClass
 			if (classLoader != null) {
 				// 如果classLoader不为空，则使用以传入的classLoader同一虚拟机加载类对象
-				// 否则只记录 className
 				bd.setBeanClass(ClassUtils.forName(className, classLoader));
 			}
 			else {
+				// 否则只记录 className
 				bd.setBeanClassName(className);
 			}
 		}

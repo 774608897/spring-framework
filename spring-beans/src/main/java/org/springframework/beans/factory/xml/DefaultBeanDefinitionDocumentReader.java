@@ -191,7 +191,6 @@ public class DefaultBeanDefinitionDocumentReader implements BeanDefinitionDocume
 	 * @param delegate
 	 */
 	private void parseDefaultElement(Element ele, BeanDefinitionParserDelegate delegate) {
-		// TODO 标签的区分
 		if (delegate.nodeNameEquals(ele, IMPORT_ELEMENT)) {
 			// 解析import
 			// 在配置文件中，通过使用import标签的方式，导入其他模块的配置文件

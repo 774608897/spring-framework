@@ -118,35 +118,43 @@ class ConstructorResolver {
 	 */
 	public BeanWrapper autowireConstructor(String beanName, RootBeanDefinition mbd,
 			@Nullable Constructor<?>[] chosenCtors, @Nullable Object[] explicitArgs) {
-
+		// 封装 BeanWrapperImpl 对象，并完成初始化
 		BeanWrapperImpl bw = new BeanWrapperImpl();
 		this.beanFactory.initBeanWrapper(bw);
+		// 获得 constructorToUse、argsHolderToUse、argsToUse
+		Constructor<?> constructorToUse = null;// 构造函数
+		ArgumentsHolder argsHolderToUse = null;// 构造参数持有者
+		Object[] argsToUse = null;// 构造参数
 
-		Constructor<?> constructorToUse = null;
-		ArgumentsHolder argsHolderToUse = null;
-		Object[] argsToUse = null;
-
+		// 确定构造参数
+		// 如果 getBean() 已经传递，则直接使用
 		if (explicitArgs != null) {
 			argsToUse = explicitArgs;
 		} else {
+			// 尝试从缓存中获取
 			Object[] argsToResolve = null;
 			synchronized (mbd.constructorArgumentLock) {
+				// 缓存中的构造函数或者工厂方法
 				constructorToUse = (Constructor<?>) mbd.resolvedConstructorOrFactoryMethod;
 				if (constructorToUse != null && mbd.constructorArgumentsResolved) {
-					// Found a cached constructor...
+					// 缓存中的构造参数
 					argsToUse = mbd.resolvedConstructorArguments;
 					if (argsToUse == null) {
 						argsToResolve = mbd.preparedConstructorArguments;
 					}
 				}
 			}
+			// 缓存中存在,则解析存储在 BeanDefinition 中的参数
+			// 如给定方法的构造函数 A(int ,int )，则通过此方法后就会把配置文件中的("1","1")转换为 (1,1)
+			// 缓存中的值可能是原始值也有可能是最终值
 			if (argsToResolve != null) {
 				argsToUse = resolvePreparedArguments(beanName, mbd, bw, constructorToUse, argsToResolve, true);
 			}
 		}
 
+		// 没有缓存，则尝试从配置文件中获取参数
 		if (constructorToUse == null || argsToUse == null) {
-			// Take specified constructors, if any.
+			// 如果 chosenCtors 未传入，则获取构造方法们
 			Constructor<?>[] candidates = chosenCtors;
 			if (candidates == null) {
 				Class<?> beanClass = mbd.getBeanClass();
@@ -161,6 +169,7 @@ class ConstructorResolver {
 				}
 			}
 
+			// 创建bean
 			if (candidates.length == 1 && explicitArgs == null && !mbd.hasConstructorArgumentValues()) {
 				Constructor<?> uniqueCandidate = candidates[0];
 				if (uniqueCandidate.getParameterCount() == 0) {
@@ -174,50 +183,65 @@ class ConstructorResolver {
 				}
 			}
 
-			// Need to resolve the constructor.
+			// 是否需要解析构造器
 			boolean autowiring = (chosenCtors != null
 					|| mbd.getResolvedAutowireMode() == AutowireCapableBeanFactory.AUTOWIRE_CONSTRUCTOR);
+			// 用于承载解析后的构造函数参数的值
 			ConstructorArgumentValues resolvedValues = null;
-
 			int minNrOfArgs;
 			if (explicitArgs != null) {
 				minNrOfArgs = explicitArgs.length;
 			} else {
+				// 从 BeanDefinition 中获取构造参数，也就是从配置文件中提取构造参数
 				ConstructorArgumentValues cargs = mbd.getConstructorArgumentValues();
 				resolvedValues = new ConstructorArgumentValues();
+				// 解析构造函数的参数
+				// 将该 bean 的构造函数参数解析为 resolvedValues 对象，其中会涉及到其他 bean
 				minNrOfArgs = resolveConstructorArguments(beanName, mbd, bw, cargs, resolvedValues);
 			}
 
+			// 对构造函数进行排序处理
+			// public 构造函数优先参数数量降序，非public 构造函数参数数量降序
 			AutowireUtils.sortConstructors(candidates);
+			
+			// 最小参数类型权重
 			int minTypeDiffWeight = Integer.MAX_VALUE;
 			Set<Constructor<?>> ambiguousConstructors = null;
 			LinkedList<UnsatisfiedDependencyException> causes = null;
 
+			// 迭代所有构造函数
 			for (Constructor<?> candidate : candidates) {
+				// 获取该构造函数的参数类型
 				Class<?>[] paramTypes = candidate.getParameterTypes();
 
+				// 如果已经找到选用的构造函数或者需要的参数个数小于当前的构造函数参数个数，则终止。
 				if (constructorToUse != null && argsToUse != null && argsToUse.length > paramTypes.length) {
-					// Already found greedy constructor that can be satisfied ->
-					// do not look any further, there are only less greedy constructors left.
 					break;
 				}
+				// 参数个数不等，继续
 				if (paramTypes.length < minNrOfArgs) {
 					continue;
 				}
 
+				// 参数持有者 ArgumentsHolder 对象
 				ArgumentsHolder argsHolder;
 				if (resolvedValues != null) {
 					try {
+						// 参数名称
 						String[] paramNames = ConstructorPropertiesChecker.evaluate(candidate, paramTypes.length);
 						if (paramNames == null) {
+							// 获取构造函数、方法参数的探测器
 							ParameterNameDiscoverer pnd = this.beanFactory.getParameterNameDiscoverer();
 							if (pnd != null) {
+								// 通过探测器获取构造函数的参数名称
 								paramNames = pnd.getParameterNames(candidate);
 							}
 						}
+						// 根据构造函数和构造参数，创建参数持有者 ArgumentsHolder 对象
 						argsHolder = createArgumentArray(beanName, mbd, resolvedValues, bw, paramTypes, paramNames,
 								getUserDeclaredConstructor(candidate), autowiring, candidates.length == 1);
 					} catch (UnsatisfiedDependencyException ex) {
+						// 若发生 UnsatisfiedDependencyException 异常，添加到 causes 中。
 						if (logger.isTraceEnabled()) {
 							logger.trace("Ignoring constructor [" + candidate + "] of bean '" + beanName + "': " + ex);
 						}
@@ -379,8 +403,10 @@ class ConstructorResolver {
 		// 初始化 BeanWrapperImpl
 		// 向BeanWrapper对象中添加 ConversionService 对象和属性编辑器 PropertyEditor 对象
 		this.beanFactory.initBeanWrapper(bw);
-		
-/**-----------------------------------------------------------确定工厂对象---------------------------------------------------------------*/
+
+		/**
+		 * -----------------------------------------------------------确定工厂对象---------------------------------------------------------------
+		 */
 		// 获得 factoryBean、factoryClass、isStatic、factoryBeanName 属性
 		Object factoryBean;
 		Class<?> factoryClass;
@@ -410,21 +436,29 @@ class ConstructorResolver {
 			factoryClass = mbd.getBeanClass();
 			isStatic = true;
 		}
-/**-----------------------------------------------------------确定工厂对象end---------------------------------------------------------------*/
-		
-/**-----------------------------------------------------------确定构造参数---------------------------------------------------------------*/
+		/**
+		 * -----------------------------------------------------------确定工厂对象end---------------------------------------------------------------
+		 */
+
+		/**
+		 * -----------------------------------------------------------确定构造参数---------------------------------------------------------------
+		 */
 		// 获得 factoryMethodToUse、argsHolderToUse、argsToUse 属性
 		Method factoryMethodToUse = null;
 		ArgumentsHolder argsHolderToUse = null;
 		Object[] argsToUse = null;
-		
+
 		// 如果指定了构造参数则直接使用
 		// 在调用 getBean 方法的时候指定了方法参数
-/**-----------------------------------------------------------确定构造参数1：explicitArgs---------------------------------------------------------------*/
+		/**
+		 * -----------------------------------------------------------确定构造参数1：explicitArgs---------------------------------------------------------------
+		 */
 		if (explicitArgs != null) {
 			argsToUse = explicitArgs;
 		} else {
-/**-----------------------------------------------------------确定构造参数2：缓存---------------------------------------------------------------*/
+			/**
+			 * -----------------------------------------------------------确定构造参数2：缓存---------------------------------------------------------------
+			 */
 			// 没有指定，则尝试从配置文件中解析
 			Object[] argsToResolve = null;
 			// 首先尝试从缓存中获取
@@ -448,12 +482,14 @@ class ConstructorResolver {
 				argsToUse = resolvePreparedArguments(beanName, mbd, bw, factoryMethodToUse, argsToResolve, true);
 			}
 		}
-		
-		//配置文件的信息都会转换到 BeanDefinition 实例对象中，所以可以从 BeanDefinition 对象中直接获取参数。
+
+		// 配置文件的信息都会转换到 BeanDefinition 实例对象中，所以可以从 BeanDefinition 对象中直接获取参数。
 		if (factoryMethodToUse == null || argsToUse == null) {
 			// 获取工厂方法的类全名称
 			factoryClass = ClassUtils.getUserClass(factoryClass);
-/**-----------------------------------------------------------确定构造函数---------------------------------------------------------------*/
+			/**
+			 * -----------------------------------------------------------确定构造函数---------------------------------------------------------------
+			 */
 			// 获取所有待定方法
 			Method[] rawCandidates = getCandidateMethods(factoryClass, mbd);
 			// 检索所有方法，这里是对方法进行过滤
@@ -494,7 +530,9 @@ class ConstructorResolver {
 			if (explicitArgs != null) {
 				minNrOfArgs = explicitArgs.length;
 			} else {
-/**-----------------------------------------------------------确定构造参数3：读取配置文件---------------------------------------------------------------*/
+				/**
+				 * -----------------------------------------------------------确定构造参数3：读取配置文件---------------------------------------------------------------
+				 */
 				// getBean() 没有传递参数，则需要解析保存在 BeanDefinition 构造函数中指定的参数
 				if (mbd.hasConstructorArgumentValues()) {
 					// 构造函数的参数

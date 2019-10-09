@@ -34,7 +34,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.logging.Log;
-
 import org.springframework.beans.BeanMetadataElement;
 import org.springframework.beans.BeanWrapper;
 import org.springframework.beans.BeanWrapperImpl;
@@ -411,24 +410,28 @@ class ConstructorResolver {
 			factoryClass = mbd.getBeanClass();
 			isStatic = true;
 		}
+/**-----------------------------------------------------------确定工厂对象end---------------------------------------------------------------*/
+		
+/**-----------------------------------------------------------确定构造参数---------------------------------------------------------------*/
 		// 获得 factoryMethodToUse、argsHolderToUse、argsToUse 属性
 		Method factoryMethodToUse = null;
 		ArgumentsHolder argsHolderToUse = null;
 		Object[] argsToUse = null;
-/**-----------------------------------------------------------确定工厂对象end---------------------------------------------------------------*/
 		
-/**-----------------------------------------------------------确定构造参数---------------------------------------------------------------*/
 		// 如果指定了构造参数则直接使用
 		// 在调用 getBean 方法的时候指定了方法参数
+/**-----------------------------------------------------------确定构造参数1：explicitArgs---------------------------------------------------------------*/
 		if (explicitArgs != null) {
 			argsToUse = explicitArgs;
 		} else {
+/**-----------------------------------------------------------确定构造参数2：缓存---------------------------------------------------------------*/
 			// 没有指定，则尝试从配置文件中解析
 			Object[] argsToResolve = null;
 			// 首先尝试从缓存中获取
 			synchronized (mbd.constructorArgumentLock) {
-				// 获取缓存中的构造函数或者工厂方法
+				// 获取缓存中的构造函数 或 工厂方法
 				factoryMethodToUse = (Method) mbd.resolvedConstructorOrFactoryMethod;
+				// 构造函数不为空，且已经被解析过
 				if (factoryMethodToUse != null && mbd.constructorArgumentsResolved) {
 					// 获取缓存中的构造参数
 					argsToUse = mbd.resolvedConstructorArguments;
@@ -445,19 +448,18 @@ class ConstructorResolver {
 				argsToUse = resolvePreparedArguments(beanName, mbd, bw, factoryMethodToUse, argsToResolve, true);
 			}
 		}
-
+		
+		//配置文件的信息都会转换到 BeanDefinition 实例对象中，所以可以从 BeanDefinition 对象中直接获取参数。
 		if (factoryMethodToUse == null || argsToUse == null) {
-			// Need to determine the factory method...
-			// Try all methods with this name to see if they match the given arguments.
 			// 获取工厂方法的类全名称
 			factoryClass = ClassUtils.getUserClass(factoryClass);
-
+/**-----------------------------------------------------------确定构造函数---------------------------------------------------------------*/
 			// 获取所有待定方法
 			Method[] rawCandidates = getCandidateMethods(factoryClass, mbd);
 			// 检索所有方法，这里是对方法进行过滤
 			List<Method> candidateList = new ArrayList<>();
 			for (Method candidate : rawCandidates) {
-				// 如果有static 且为工厂方法，则添加到 candidateSet 中
+				// 如果有static 且为工厂方法，则添加到 candidateList 中
 				if (Modifier.isStatic(candidate.getModifiers()) == isStatic && mbd.isFactoryMethod(candidate)) {
 					candidateList.add(candidate);
 				}
@@ -492,8 +494,7 @@ class ConstructorResolver {
 			if (explicitArgs != null) {
 				minNrOfArgs = explicitArgs.length;
 			} else {
-				// We don't have arguments passed in programmatically, so we need to resolve the
-				// arguments specified in the constructor arguments held in the bean definition.
+/**-----------------------------------------------------------确定构造参数3：读取配置文件---------------------------------------------------------------*/
 				// getBean() 没有传递参数，则需要解析保存在 BeanDefinition 构造函数中指定的参数
 				if (mbd.hasConstructorArgumentValues()) {
 					// 构造函数的参数
@@ -638,7 +639,7 @@ class ConstructorResolver {
 
 			if (explicitArgs == null && argsHolderToUse != null) {
 				mbd.factoryMethodToIntrospect = factoryMethodToUse;
-				// 将解析的构造函数加入缓存
+				// 将解析的构造函数，构造参数加入缓存
 				argsHolderToUse.storeCache(mbd, factoryMethodToUse);
 			}
 		}
@@ -967,8 +968,11 @@ class ConstructorResolver {
 		}
 
 		public void storeCache(RootBeanDefinition mbd, Executable constructorOrFactoryMethod) {
+			// 构造函数的缓存锁
 			synchronized (mbd.constructorArgumentLock) {
+				// 缓存已经解析的构造函数或者工厂方法
 				mbd.resolvedConstructorOrFactoryMethod = constructorOrFactoryMethod;
+				// 标记该构造函数已经解析
 				mbd.constructorArgumentsResolved = true;
 				if (this.resolveNecessary) {
 					mbd.preparedConstructorArguments = this.preparedArguments;

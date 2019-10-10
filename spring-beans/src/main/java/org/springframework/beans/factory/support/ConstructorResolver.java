@@ -203,7 +203,7 @@ class ConstructorResolver {
 			// 对构造函数进行排序处理
 			// public 构造函数优先参数数量降序，非public 构造函数参数数量降序
 			AutowireUtils.sortConstructors(candidates);
-			
+
 			// 最小参数类型权重
 			int minTypeDiffWeight = Integer.MAX_VALUE;
 			Set<Constructor<?>> ambiguousConstructors = null;
@@ -253,17 +253,24 @@ class ConstructorResolver {
 						continue;
 					}
 				} else {
+					// continue 构造函数没有参数
 					// Explicit arguments given -> arguments length must match exactly.
 					if (paramTypes.length != explicitArgs.length) {
 						continue;
 					}
+					// 根据 explicitArgs ，创建 ArgumentsHolder 对象
 					argsHolder = new ArgumentsHolder(explicitArgs);
 				}
 
+				// isLenientConstructorResolution 判断解析构造函数的时候是否以宽松模式还是严格模式
+				// 严格模式：解析构造函数时，必须所有的都需要匹配，否则抛出异常
+				// 宽松模式：使用具有"最接近的模式"进行匹配
+				// typeDiffWeight：类型差异权重
 				int typeDiffWeight = (mbd.isLenientConstructorResolution()
 						? argsHolder.getTypeDifferenceWeight(paramTypes)
 						: argsHolder.getAssignabilityWeight(paramTypes));
 				// Choose this constructor if it represents the closest match.
+				// 如果它代表着当前最接近的匹配则选择其作为构造函数
 				if (typeDiffWeight < minTypeDiffWeight) {
 					constructorToUse = candidate;
 					argsHolderToUse = argsHolder;
@@ -279,6 +286,7 @@ class ConstructorResolver {
 				}
 			}
 
+			// 没有可执行的工厂方法，抛出异常
 			if (constructorToUse == null) {
 				if (causes != null) {
 					UnsatisfiedDependencyException ex = causes.removeLast();
@@ -298,11 +306,13 @@ class ConstructorResolver {
 			}
 
 			if (explicitArgs == null && argsHolderToUse != null) {
+				// 将解析的构造函数加入缓存
 				argsHolderToUse.storeCache(mbd, constructorToUse);
 			}
 		}
 
 		Assert.state(argsToUse != null, "Unresolved constructor arguments");
+		// 创建 Bean 对象，并设置到 bw 中
 		bw.setBeanInstance(instantiate(beanName, mbd, constructorToUse, argsToUse));
 		return bw;
 	}

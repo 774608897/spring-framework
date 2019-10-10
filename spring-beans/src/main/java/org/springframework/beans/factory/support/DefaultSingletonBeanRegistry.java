@@ -206,14 +206,17 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 	/**
 	 * 从缓存中获取bean<br>
 	 * <p>
-	 * singletonObjects 存放的是单例 bean的映射 对应关系为 bean name --> bean instance
+	 * singletonObjects 存放的是单例 bean的映射 对应关系为 bean name --> bean instance<br>
 	 * singletonFactories 存放的是 ObjectFactory，可以理解为创建单例 bean 的 factory 对应关系是 bean
-	 * name --> ObjectFactory earlySingletonObjects 存放的是早期的 bean 对应关系也是 bean name
-	 * --> bean instance。 它与 {@link #singletonObjects} 区别在于
-	 * earlySingletonObjects中存放的 bean不一定是完整
+	 * name --> ObjectFactory<br>
+	 * earlySingletonObjects 存放的是早期的 bean 对应关系也是 bean name--> bean instance。 它与
+	 * {@link #singletonObjects} 区别在于 earlySingletonObjects中存放的 bean不一定是完整
 	 * </p>
 	 * 
-	 * @param allowEarlyReference 是否允许提前创建
+	 * @param allowEarlyReference 是否允许提前创建；其实真正的意思是，是否允许从 singletonFactories 缓存中通过
+	 *                            #getObject() 方法，拿到对象。为什么会有这样一个字段呢？原因就在于
+	 *                            singletonFactories 才是 Spring 解决 singleton bean
+	 *                            的诀窍所在
 	 */
 	@Nullable
 	protected Object getSingleton(String beanName, boolean allowEarlyReference) {
@@ -380,6 +383,9 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 
 	/**
 	 * 判断该 beanName 对应的 Bean 是否在创建过程中，注意这个过程讲的是整个工厂中
+	 * 
+	 * 也就是说 bean 在初始化但是没有完成初始化，有一个这样的过程其实和 Spring 解决 bean 循环依赖的理念相辅相成。因为 Spring 解决
+	 * singleton bean 的核心就在于提前曝光 bean 。
 	 */
 	public boolean isSingletonCurrentlyInCreation(String beanName) {
 		return this.singletonsCurrentlyInCreation.contains(beanName);

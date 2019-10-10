@@ -341,8 +341,8 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 					}
 				}
 				// <8> bean 实例化
+				// 单例模式:在 Spring 的 IoC 容器中只存在一个对象实例，所有该对象的引用都共享这个实例
 				if (mbd.isSingleton()) {
-					// 单例模式
 					sharedInstance = getSingleton(beanName, () -> {
 						try {
 							return createBean(beanName, mbd, args);
@@ -355,7 +355,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 					});
 					bean = getObjectForBeanInstance(sharedInstance, name, beanName, mbd);
 				}
-				// 原型模式
+				// 原型模式:每次对该bean的请求都会创建一个新的实例
 				else if (mbd.isPrototype()) {
 					// It's a prototype -> create a new instance.
 					Object prototypeInstance = null;

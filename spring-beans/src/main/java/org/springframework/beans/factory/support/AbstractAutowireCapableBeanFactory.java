@@ -436,8 +436,8 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 	@Override
 	public Object applyBeanPostProcessorsBeforeInitialization(Object existingBean, String beanName)
 			throws BeansException {
-
 		Object result = existingBean;
+		// 遍历 BeanPostProcessor 数组
 		for (BeanPostProcessor processor : getBeanPostProcessors()) {
 			Object current = processor.postProcessBeforeInitialization(result, beanName);
 			if (current == null) {
@@ -571,6 +571,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		// 使用合适的实例化策略来创建新的实例：工厂方法、构造函数自动注入、简单初始化
 		// 主要是将BeanDefinition转换为BeanWrapper
 		if (instanceWrapper == null) {
+			/** 1：实例化bean */
 			instanceWrapper = createBeanInstance(beanName, mbd, args);
 		}
 		// 包装的实例对象
@@ -617,8 +618,10 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 			// 属性填充
 			// 对 bean 进行填充，将各个属性值注入，其中，可能存在依赖于其他 bean 的属性
 			// 则会递归初始依赖 bean
+			/** 2：属性注入 */
 			populateBean(beanName, mbd, instanceWrapper);
 			// 调用初始化方法
+			/** 3：初始化bean对象 */
 			exposedObject = initializeBean(beanName, exposedObject, mbd);
 		} catch (Throwable ex) {
 			if (ex instanceof BeanCreationException && beanName.equals(((BeanCreationException) ex).getBeanName())) {
@@ -1880,6 +1883,8 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 	 * @see #applyBeanPostProcessorsAfterInitialization
 	 */
 	protected Object initializeBean(final String beanName, final Object bean, @Nullable RootBeanDefinition mbd) {
+		/** 1：激活 Aware 方法 */
+		// 主要设置 beanName，beanClassLoader，BeanFactory 三个属性值
 		if (System.getSecurityManager() != null) {
 			AccessController.doPrivileged((PrivilegedAction<Object>) () -> {
 				invokeAwareMethods(beanName, bean);
@@ -1889,11 +1894,13 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 			invokeAwareMethods(beanName, bean);
 		}
 
+		/** 2：前置处理器的应用 */
 		Object wrappedBean = bean;
 		if (mbd == null || !mbd.isSynthetic()) {
 			wrappedBean = applyBeanPostProcessorsBeforeInitialization(wrappedBean, beanName);
 		}
 
+		/** 3：激活自定义的 init 方法 */
 		try {
 			invokeInitMethods(beanName, wrappedBean, mbd);
 		} catch (Throwable ex) {

@@ -88,6 +88,7 @@ import org.springframework.core.convert.support.GenericConversionService;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.lang.Nullable;
+import org.springframework.mytest.BeanPostProcessorTest;
 import org.springframework.tests.Assume;
 import org.springframework.tests.TestGroup;
 import org.springframework.tests.sample.beans.DependenciesBean;
@@ -818,7 +819,9 @@ public class DefaultListableBeanFactoryTests {
 
 	@Test
 	public void testBeanDefinitionOverriding() {
+		BeanPostProcessorTest beanPostProcessorTest = new BeanPostProcessorTest();
 		DefaultListableBeanFactory lbf = new DefaultListableBeanFactory();
+		lbf.addBeanPostProcessor(beanPostProcessorTest);
 		lbf.registerBeanDefinition("test", new RootBeanDefinition(TestBean.class));
 		lbf.getBean("test");
 //		lbf.registerBeanDefinition("test", new RootBeanDefinition(NestedTestBean.class));

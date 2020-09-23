@@ -223,7 +223,7 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 		// 从单例缓存中加载 bean（从 singletonObjects 中，获取 Bean 对象）
 		Object singletonObject = this.singletonObjects.get(beanName);
 		// 缓存中的 bean 为空，且当前 bean 正在创建
-		// 集合singletonsCurrentlyInCreation中是否存在
+		// 集合singletonsCurrentlyInCreation（bean在创建过程中的集合）中是否存在
 		if (singletonObject == null && isSingletonCurrentlyInCreation(beanName)) {
 			// 加锁
 			synchronized (this.singletonObjects) {
@@ -231,14 +231,14 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 				singletonObject = this.earlySingletonObjects.get(beanName);
 				// earlySingletonObjects 中没有，且允许提前创建
 				if (singletonObject == null && allowEarlyReference) {
-					// 从 singletonFactories 中获取对应的 ObjectFactory
+					// 从 singletonFactories 中获取对应的 ObjectFactory（创建单例 bean 的 factory）
 					ObjectFactory<?> singletonFactory = this.singletonFactories.get(beanName);
 					if (singletonFactory != null) {
 						// 获得 bean
 						singletonObject = singletonFactory.getObject();
 						// 添加 bean 到 earlySingletonObjects 中
 						this.earlySingletonObjects.put(beanName, singletonObject);
-						// 从 singletonFactories 中移除对应的 ObjectFactory
+						// 从 singletonFactories 中移除对应的 ObjectFactory（创建单例 bean 的 factory）
 						this.singletonFactories.remove(beanName);
 					}
 				}

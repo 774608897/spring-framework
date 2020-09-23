@@ -85,7 +85,6 @@ public abstract class BeanFactoryUtils {
 		if (!name.startsWith(BeanFactory.FACTORY_BEAN_PREFIX)) {
 			return name;
 		}
-		
 		//transformedBeanNameCache 集合的存在，是为了缓存转换后的结果。下次再获取相同的 name 时，直接返回缓存中的结果即可。
 		//computeIfAbsent 方法，分成两种情况：
 		//1. 未存在，则进行计算执行，并将结果添加到缓存
